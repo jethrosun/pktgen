@@ -411,9 +411,10 @@ def decrease_smoothly(q, server, start_rate, stop_rate, steps, duration, margin,
 def kill_traffic(q, server):
     q.add_job(server, Job(0, {"stop": True}))
 
-def run_demo_job(q, server, rate):
-    duration = 3600 * 1000 # If nothing happens in an hour then we should just 
-                           # give up.
+def run_demo_job(q, server, rate, duration = None):
+    if not duration:
+        duration = 3600 * 1000 # If nothing happens in an hour then we should just 
+                               # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
             "duration": duration, \
@@ -425,24 +426,23 @@ def run_demo_job(q, server, rate):
             "life_max": 10,\
             "online": True
             }))
-
-def sip_traffic(q, server, rate):
-    duration = 3600 * 1000 # If nothing happens in an hour then we should just 
-                           # give up.
+def run_demo_job_port(q, server, pmin, pmax, rate, duration = None):
+    if not duration:
+        duration = 3600 * 1000 # If nothing happens in an hour then we should just 
+                               # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
             "duration": duration, \
             "warmup": 0,\
             "num_flows": 300,\
+            "port_min": pmin, \
+            "port_max": pmax, \
             "size_min": 512,\
             "size_max": 768,\
             "life_min": 1,\
             "life_max": 10,\
-            "port_min": 5060,\
-            "port_max": 5061, \
             "online": True
             }))
-
 def run_stress(q):
     server = "s"
     q.add_node(Node(server, "127.0.0.1", 7001))
@@ -465,84 +465,41 @@ def run_stress(q):
         time.sleep(60)
         time.sleep(150)
 
-def run_demo(q):
-    baseline = 500
-    spike = 10000
-    mid = 2000
-    ports = 1
-    server = "s"
-    q.add_node(Node(server, "127.0.0.1", 7001))
+def run_demo(q, generation_function):
+    baseline = 250
+    spike = 7500
+    mid = 1500
     while True:
         print "Hello welcome to the E2 demo."
         print "Running baseline traffic"
-        run_demo_job(q, server, baseline/ports)
+        generation_function(baseline)
         print "Hit enter to spike"
         raw_input()
         print "Now rapidly spiking traffic"
-        run_demo_job(q, server, spike/ports)
+        generation_function(spike)
         print "Hit enter to decrease midway"
         raw_input()
+        generation_function(mid)
         print "OK! Whatever was going on is becoming less of a problem now"
-        run_demo_job(q, server, mid/ports)
         print "Hit enter to go back to baseline"
         raw_input()
+        generation_function(baseline)
         print "Finally things are entirely dying off"
-        run_demo_job(q, server, baseline/ports)
         print "Now let us do that again, but focus on one server"
         print "Hit enter to spike"
         raw_input()
         print "Now rapidly spiking traffic"
-        run_demo_job(q, server, spike/ports)
+        generation_function(spike)
         print "Hit enter to decrease midway"
         raw_input()
         print "OK! Whatever was going on is becoming less of a problem now"
-        run_demo_job(q, server, mid/ports)
+        generation_function(mid)
         print "Hit enter to go back to baseline"
         raw_input()
         print "Finally things are entirely dying off"
-        run_demo_job(q, server, baseline/ports)
+        generation_function(baseline)
         print "Hit enter to end demo"
         raw_input()
-        print "Thank you"
-
-def run_demo_auto(q):
-    baseline = 500
-    spike = 10000
-    mid = 2000
-    ports = 1
-    server = "s"
-    q.add_node(Node(server, "127.0.0.1", 7001))
-    while True:
-        print "Hello welcome to the E2 demo."
-        print "Running baseline traffic"
-        run_demo_job(q, server, baseline/ports)
-        print "Hit enter to spike"
-        time.sleep(30)
-        print "Now rapidly spiking traffic"
-        run_demo_job(q, server, spike/ports)
-        print "Hit enter to decrease midway"
-        time.sleep(30)
-        print "OK! Whatever was going on is becoming less of a problem now"
-        run_demo_job(q, server, mid/ports)
-        print "Hit enter to go back to baseline"
-        time.sleep(30)
-        print "Finally things are entirely dying off"
-        run_demo_job(q, server, baseline/ports)
-        print "Now let us do that again, but focus on one server"
-        print "Hit enter to spike"
-        time.sleep(30)
-        print "Now rapidly spiking traffic"
-        run_demo_job(q, server, spike/ports)
-        print "Hit enter to decrease midway"
-        time.sleep(30)
-        print "OK! Whatever was going on is becoming less of a problem now"
-        run_demo_job(q, server, mid/ports)
-        print "Hit enter to go back to baseline"
-        time.sleep(30)
-        print "Finally things are entirely dying off"
-        run_demo_job(q, server, baseline/ports)
-        print "Hit enter to end demo"
-        time.sleep(30)
         print "Thank you"
 
 def demo_console(q):
@@ -552,6 +509,33 @@ def demo_console(q):
     tenant1_pgen = "t1p"
     q.add_node(Node(tenant1_pgen, "127.0.0.1", 7002))
     print "Adding t1p"
+    tenant2_pgen = "t2p"
+    q.add_node(Node(tenant2_pgen, "127.0.0.1", 7003))
+    print "Adding t2p"
+    t1_background_traffic = 200
+    t2_background_traffic = 400
+    all_pgens = [tenant0_pgen, tenant1_pgen, tenant2_pgen]
+    def t0_traffic(rate):
+        run_demo_job_port(q, tenant0_pgen, 1, 1700, rate)
+    def t1_traffic(rate):
+        run_demo_job_port(q, tenant1_pgen, 5060, 5062, rate)
+    def t2_traffic(rate):
+        run_demo_job_port(q, tenant2_pgen, 1725, 1726, rate)
+    def demo():
+        run_demo_job_port(q, tenant1_pgen, 1725, 1726, t1_background_traffic, \
+                duration = 24 * 3600 * 1000)
+        run_demo_job_port(q, tenant2_pgen, 5060, 5062, t2_background_traffic, \
+                duration = 24 * 3600 * 1000)
+        run_demo(q, t0_traffic)
+    def kill():
+        for pgen in all_pgens:
+            kill_traffic(q, pgen)
+    def kill_t0():
+        kill_traffic(q, tenant0_pgen)
+    def kill_t1():
+        kill_traffic(q, tenant0_pgen)
+    def kill_t2():
+        kill_traffic(q, tenant0_pgen)
     code.interact(local=dict(globals(), **locals()))
 
 def main():
