@@ -513,32 +513,32 @@ def run_demo_auto(q, generation_function, kill):
         print "Running baseline traffic"
         generation_function(baseline)
         print "Hit enter to spike"
-        time.sleep(120)()
+        time.sleep(120)
         print "Now rapidly spiking traffic"
         generation_function(spike)
         print "Hit enter to decrease midway"
-        time.sleep(120)()
+        time.sleep(120)
         generation_function(mid)
         print "OK! Whatever was going on is becoming less of a problem now"
         print "Hit enter to go back to baseline"
-        time.sleep(120)()
+        time.sleep(120)
         generation_function(baseline)
         print "Finally things are entirely dying off"
         print "Now let us do that again, but focus on one server"
         print "Hit enter to spike"
-        time.sleep(120)()
+        time.sleep(120)
         print "Now rapidly spiking traffic"
         generation_function(spike)
         print "Hit enter to decrease midway"
-        time.sleep(120)()
+        time.sleep(120)
         print "OK! Whatever was going on is becoming less of a problem now"
         generation_function(mid)
         print "Hit enter to go back to baseline"
-        time.sleep(120)()
+        time.sleep(120)
         print "Finally things are entirely dying off"
         generation_function(baseline)
         print "Hit enter to end demo"
-        time.sleep(120)()
+        time.sleep(120)
         print "Thank you. Killing off traffic, hit enter to get baseline"
         kill()
         time.sleep(120)()
