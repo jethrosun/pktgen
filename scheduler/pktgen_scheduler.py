@@ -465,7 +465,7 @@ def run_stress(q):
         time.sleep(60)
         time.sleep(150)
 
-def run_demo(q, generation_function):
+def run_demo(q, generation_function, kill):
     baseline = 250
     spike = 7500
     mid = 1500
@@ -500,7 +500,48 @@ def run_demo(q, generation_function):
         generation_function(baseline)
         print "Hit enter to end demo"
         raw_input()
-        print "Thank you"
+        print "Thank you. Killing off traffic, hit enter to get baseline"
+        kill()
+        raw_input()
+
+def run_demo_auto(q, generation_function, kill):
+    baseline = 250
+    spike = 7500
+    mid = 1500
+    while True:
+        print "Hello welcome to the E2 demo."
+        print "Running baseline traffic"
+        generation_function(baseline)
+        print "Hit enter to spike"
+        time.sleep(120)()
+        print "Now rapidly spiking traffic"
+        generation_function(spike)
+        print "Hit enter to decrease midway"
+        time.sleep(120)()
+        generation_function(mid)
+        print "OK! Whatever was going on is becoming less of a problem now"
+        print "Hit enter to go back to baseline"
+        time.sleep(120)()
+        generation_function(baseline)
+        print "Finally things are entirely dying off"
+        print "Now let us do that again, but focus on one server"
+        print "Hit enter to spike"
+        time.sleep(120)()
+        print "Now rapidly spiking traffic"
+        generation_function(spike)
+        print "Hit enter to decrease midway"
+        time.sleep(120)()
+        print "OK! Whatever was going on is becoming less of a problem now"
+        generation_function(mid)
+        print "Hit enter to go back to baseline"
+        time.sleep(120)()
+        print "Finally things are entirely dying off"
+        generation_function(baseline)
+        print "Hit enter to end demo"
+        time.sleep(120)()
+        print "Thank you. Killing off traffic, hit enter to get baseline"
+        kill()
+        time.sleep(120)()
 
 def demo_console(q):
     tenant0_pgen = "t0p"
@@ -512,8 +553,8 @@ def demo_console(q):
     tenant2_pgen = "t2p"
     q.add_node(Node(tenant2_pgen, "127.0.0.1", 7003))
     print "Adding t2p"
-    t1_background_traffic = 200
-    t2_background_traffic = 400
+    t1_background_traffic = 750
+    t2_background_traffic = 500
     all_pgens = [tenant0_pgen, tenant1_pgen, tenant2_pgen]
     def t0_traffic(rate):
         run_demo_job_port(q, tenant0_pgen, 1, 1700, rate)
@@ -526,7 +567,13 @@ def demo_console(q):
                 duration = 24 * 3600 * 1000)
         run_demo_job_port(q, tenant2_pgen, 5060, 5062, t2_background_traffic, \
                 duration = 24 * 3600 * 1000)
-        run_demo(q, t0_traffic)
+        run_demo(q, t0_traffic, kill_t0)
+    def demo_auto():
+        run_demo_job_port(q, tenant1_pgen, 1725, 1726, t1_background_traffic, \
+                duration = 24 * 3600 * 1000)
+        run_demo_job_port(q, tenant2_pgen, 5060, 5062, t2_background_traffic, \
+                duration = 24 * 3600 * 1000)
+        run_demo_auto(q, t0_traffic, kill_t0)
     def kill():
         for pgen in all_pgens:
             kill_traffic(q, pgen)
