@@ -45,6 +45,7 @@ static void stats(double *start_time, struct rate_stats *r_stats, struct pktgen_
     r_stats->var_rxwire += delta * (wire - r_stats->avg_rxwire);
 
     if (elapsed >= 1.0f) {
+	printf("tx_pps %.0f rx_pps %.0f\n", tx_pps, rx_pps);
         (void)sprintf(config->o_sec, "Core %u: tx_pps: %.0f tx_gbps: %.2f rx_pps: %.0f rx_gbps: %.2f\n",
                 rte_lcore_id(), tx_pps, tx_bps/1000000000.0f,
                 rx_pps, rx_bps / 1000000000.0f);
