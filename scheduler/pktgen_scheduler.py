@@ -242,22 +242,27 @@ def run(q):
         for i in range(n):
             q.add_job(str(i), Job(1, {
                 "tx_rate": 10000,
-                "duration": 10000,
+                "duration": 24 * 60 * 60 * 1000,
                 "warmup": 0,
-                "num_flows": 10,
-                "size_min": 768, "size_max": 768,
-                "life_min": 1000, "life_max": 2000,
+                "num_flows": 1,
+                "size_min": 64, "size_max": 64,
+                "life_min": 60*1000, "life_max": 24*60*60*1000,
                 "port_min": 80, "port_max": 80,
-                "latency": True,
+                "latency": False,
+                "src_mac": "68:05:ca:00:00:ab",
+                "dst_mac": "68:05:ca:00:00:01",
                 "online": True}))
-            time.sleep(10)
-            q.add_job(str(i), Job(1, {
-                "print": True,
-                "stop": True}))
+            #time.sleep(10)
+            #q.add_job(str(i), Job(1, {
+            #    "print": True,
+            #    "stop": True}))
 
     except:
         for i in range(n):
             q.add_job(str(i), Job(0, {"stop": True}))
+def stop(q):
+    q.add_job("0", Job(0, {"print": True, "stop": True}))
+
 def main():
     q_ip = IP
     q_port = PORT

@@ -28,6 +28,7 @@ class Q(object):
         self.jobs = []
         self.thread = None
         self.results = {}
+        self.results_event = threading.Event()
         socket.setdefaulttimeout(1)
         if nodes_file:
             self.nodes = self.load_nodes(nodes_file)
@@ -140,8 +141,10 @@ class Q(object):
                             'tx_mpps_mean':           ps.avg_txmpps,
                             'tx_mpps_std':            ps.std_txmpps
                     }
+                    self.results_event.set()
             if status.type == status_pb2.Status.FAIL:
                 logger.info('Node %s successfully completed job.' % self.nodes[ip_str].addr())
+                self.results_event.set()
         except:
             logger.info('Failed to read status from node %s' % self.nodes[ip_str].addr())
             pass

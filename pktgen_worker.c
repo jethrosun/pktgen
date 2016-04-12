@@ -260,6 +260,7 @@ worker_loop(struct pktgen_config *config)
 
         run_id++;
         config->start_time = get_time_msec();
+        start_time = get_time_msec();
         generate_packet_init(&tx_template, config);
         while (!(config->flags & FLAG_WAIT) &&
                unlikely((now = get_time_msec()) -
@@ -313,6 +314,7 @@ worker_loop(struct pktgen_config *config)
             now = get_time_msec();
             uint32_t lens[burst];
             if (unlikely(mbuf_alloc_bulk(tx_pool, bufs, MAX_PKT_SIZE, burst) != 0)) {
+		printf("Could not allocate bufs\n");
                 continue;
             }
 
@@ -341,17 +343,18 @@ worker_loop(struct pktgen_config *config)
 
             nb_tx = rte_eth_tx_burst(config->port, 0, bufs, burst);
 
-            if (likely(burst > 0))
-                rte_mempool_put_bulk(bufs[0]->pool, (void **)bufs, burst);
-
-            for (i = 0; i < nb_tx; i++) {
-                r_stats.tx_bytes += lens[i];
-            }
+            if ((unlikely(burst - nb_tx) > 0))
+		    rte_mempool_put_bulk(bufs[nb_tx]->pool, 
+			    (void **)&bufs[nb_tx], 
+				burst - nb_tx);
+	    for (i = 0; i < nb_tx; i++) {
+		r_stats.tx_bytes += lens[i];
+	    }
 
             r_stats.tx_pkts += nb_tx;
         }
 
-        printf("Stopped\n");
+        printf("Stopping\n");
         // Transitions from run to stop
         if (r_stats.n > 0 && sample_count > 0) {
             r_stats.var_txpps /= (r_stats.n - 1); r_stats.var_rxpps /= (r_stats.n - 1);
@@ -366,6 +369,7 @@ worker_loop(struct pktgen_config *config)
 	} else {
 	    config->flags |= FLAG_WAIT;
 	}
+        printf("Stopped\n");
     }
 
     rte_delay_us(100);
