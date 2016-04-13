@@ -50,7 +50,7 @@ stats(double *start_time, struct rate_stats *r_stats)
 
     if (elapsed >= 1.0f) {
 #if GEN_DEBUG
-        printf("Core %u: tx_pps: %.0f tx_gbps: %.2f rx_pps: %.0f rx_gbps: %.2f\n",
+        syslog(LOG_INFO, "Core %u: tx_pps: %.0f tx_gbps: %.2f rx_pps: %.0f rx_gbps: %.2f\n",
                 rte_lcore_id(), tx_pps, tx_bps/1000000000.0f,
                 rx_pps, rx_bps / 1000000000.0f);
 #endif
@@ -231,10 +231,10 @@ worker_loop(struct pktgen_config *config)
 
     memset(samples, 0, sizeof(samples[0]) * 2 * num_samples);
 
-    printf("\nCore %u running.\n", rte_lcore_id());
+    syslog(LOG_INFO, "\nCore %u running.\n", rte_lcore_id());
 
     /* Flush the RX queue */
-    printf("Core %u: Flusing port %u RX queue\n", rte_lcore_id(), config->port);
+    syslog(LOG_INFO, "Core %u: Flusing port %u RX queue\n", rte_lcore_id(), config->port);
     while (rte_eth_rx_queue_count(config->port, 0) > 0) {
         nb_rx = rte_eth_rx_burst(config->port, 0, bufs, config->rx_ring_size);
         for (i = 0; i < nb_rx; i++) {
@@ -344,13 +344,12 @@ worker_loop(struct pktgen_config *config)
 
             nb_tx = rte_eth_tx_burst(config->port, 0, bufs, burst);
 
-            if ((unlikely(burst - nb_tx) > 0))
-		    rte_mempool_put_bulk(bufs[nb_tx]->pool, 
-			    (void **)&bufs[nb_tx], 
-				burst - nb_tx);
-	    for (i = 0; i < nb_tx; i++) {
-		r_stats.tx_bytes += lens[i];
-	    }
+            for (i = nb_tx; i < burst; i++)
+                rte_mempool_put(bufs[i]->pool, (void *)bufs[i]);
+
+            for (i = 0; i < nb_tx; i++) {
+                r_stats.tx_bytes += lens[i];
+            }
 
             r_stats.tx_pkts += nb_tx;
         }
@@ -366,11 +365,10 @@ worker_loop(struct pktgen_config *config)
         }
         config->stats = r_stats;
         if (config->flags & FLAG_WAIT) {
-	    sem_post(&config->stop_sempahore);
-	} else {
-	    config->flags |= FLAG_WAIT;
-	}
-        printf("Stopped\n");
+            sem_post(&config->stop_sempahore);
+        } else {
+            config->flags |= FLAG_WAIT;
+        }
     }
 
     rte_delay_us(100);
