@@ -220,6 +220,34 @@ static void worker_loop(struct pktgen_config *config) {
         burst /= avg_pkt;
         burst = RTE_MIN(burst, (unsigned)BURST_SIZE);
         burst = RTE_MAX((unsigned)0, burst);
+        printf("Starting\n");
+        // Transitioning from start to stop.
+        flow_ctrs = realloc(flow_ctrs, sizeof(uint16_t)*(config->num_flows + 1));
+        flow_times = realloc(flow_times, sizeof(double)*(config->num_flows + 1));
+        if (flow_ctrs == NULL || flow_times == NULL) {
+            rte_panic("couldn't allocate flow counters");
+        }
+        memset(flow_times, 0, sizeof(double) * config->num_flows);
+        memset(flow_ctrs, 0, sizeof(uint16_t) * config->num_flows);
+        memset(&r_stats, 0, sizeof(r_stats));
+
+        run_id++;
+        config->start_time = get_time_msec();
+        start_time = get_time_msec();
+        generate_packet_init(&tx_template, config);
+        while (!(config->flags & FLAG_WAIT) &&
+               unlikely((now = get_time_msec()) -
+               config->start_time < config->duration)) {
+            if (now - config->start_time > config->warmup) {
+                stats(&start_time, &r_stats);
+            }
+
+            uint64_t exp_bytes = ((now - start_time) / 1000) * config->tx_rate * 1000000 / 8;
+            int64_t avg_pkt = (r_stats.tx_bytes + 1) / (r_stats.tx_pkts + 1);
+            burst = (exp_bytes - r_stats.tx_bytes);
+            burst /= avg_pkt;
+            burst = RTE_MIN(burst, (unsigned)BURST_SIZE);
+            burst = RTE_MAX((unsigned)0, burst);
 
         nb_rx = rte_eth_rx_burst(cfg.port, 0, rx_bufs, cfg.rx_ring_size);
 
@@ -243,6 +271,12 @@ static void worker_loop(struct pktgen_config *config) {
         if (unlikely(tx_head + burst > NUM_PKTS)) {
             tx_head = 0;
         }
+            now = get_time_msec();
+            uint32_t lens[burst];
+            if (unlikely(mbuf_alloc_bulk(tx_pool, bufs, MAX_PKT_SIZE, burst) != 0)) {
+		printf("Could not allocate bufs\n");
+                continue;
+            }
 
         if (cfg.flags & FLAG_MEASURE_LATENCY) {
             now = get_time_sec();
@@ -255,6 +289,12 @@ static void worker_loop(struct pktgen_config *config) {
         }
 
         nb_tx = rte_eth_tx_burst(cfg.port, 0, tx_bufs + tx_head, burst);
+        printf("Stopping\n");
+        // Transitions from run to stop
+        if (r_stats.n > 0 && sample_count > 0) {
+            r_stats.var_txpps /= (r_stats.n - 1); r_stats.var_rxpps /= (r_stats.n - 1);
+            r_stats.var_txbps /= (r_stats.n - 1); r_stats.var_rxbps /= (r_stats.n - 1);
+            r_stats.var_txwire /= (r_stats.n - 1); r_stats.var_rxwire /= (r_stats.n - 1);
 
         for (i = 0; i < nb_tx; i++) {
             r_stats.tx_bytes += tx_bufs[tx_head + i]->pkt_len;
