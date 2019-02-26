@@ -6,26 +6,28 @@ pktgen_scheduler.py
 pktgen_scheduler talks with pktgen_servers, schedules
 jobs and listens for statuses.
 """
-
 import sys
-import json
 import code
+import json
+import math
+import time
 import Queue
-import struct
 import socket
+import struct
 import logging
 import argparse
 import threading
-import time
-import math
-from control import *
-import paramiko
 import subprocess
-from fcntl import fcntl, F_GETFL, F_SETFL
+
 from os import O_NONBLOCK, read
+from fcntl import F_GETFL, F_SETFL, fcntl
 
 import job_pb2
+import paramiko
 import status_pb2
+
+from control import *
+
 
 def connect_test_machine(machine='c3'):
     conn = paramiko.SSHClient()
@@ -141,7 +143,7 @@ def measure_delay(q, pgen_server, pgen_port, server, out):
                 tx_mpps_mean = 0
                 for v in m.itervalues():
                     for measure in v.itervalues():
-                        if measure['rx_mpps_mean'] > 0.0: 
+                        if measure['rx_mpps_mean'] > 0.0:
                             rx_mpps_mean += measure['rx_mpps_mean']
                             tx_mpps_mean += measure['tx_mpps_mean']
                 o, e = exec_command_and_wait(conn, stop_container)
@@ -160,7 +162,7 @@ def measure_delay(q, pgen_server, pgen_port, server, out):
             print "Out ", '\n\t'.join(o)
             print "Err ", '\n\t'.join(e)
             raise
- 
+
 def main():
     q_ip = 'localhost'
     q_port = 1800

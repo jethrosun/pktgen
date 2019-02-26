@@ -6,22 +6,22 @@ pktgen_scheduler.py
 pktgen_scheduler talks with pktgen_servers, schedules
 jobs and listens for statuses.
 """
-
 import sys
-import json
 import code
+import json
+import math
+import time
 import Queue
-import struct
 import socket
+import struct
 import logging
 import argparse
 import threading
-import time
-import math
-from control import *
 
 import job_pb2
 import status_pb2
+
+from control import *
 
 IP = 'localhost'
 PORT = 1800
@@ -90,7 +90,7 @@ def kill_traffic(q, server):
     q.add_job(server, Job(0, {"stop": True}))
 
 def run_demo_job(q, server, rate):
-    duration = 3600 * 1000 # If nothing happens in an hour then we should just 
+    duration = 3600 * 1000 # If nothing happens in an hour then we should just
                            # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
@@ -105,7 +105,7 @@ def run_demo_job(q, server, rate):
             }))
 
 def sip_traffic(q, server, rate):
-    duration = 3600 * 1000 # If nothing happens in an hour then we should just 
+    duration = 3600 * 1000 # If nothing happens in an hour then we should just
                            # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
@@ -231,7 +231,7 @@ def demo_console(q):
     q.add_node(Node(tenant1_pgen, "127.0.0.1", 7002))
     print "Adding t1p"
     code.interact(local=dict(globals(), **locals()))
-    
+
 def run(q):
     servers = [("127.0.0.1", 5000)]
     n = len(servers)

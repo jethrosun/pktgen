@@ -1,10 +1,14 @@
-from job_pb2 import *
-from status_pb2 import *
 import socket
 import struct
+
+from job_pb2 import *
+from status_pb2 import *
+
 BCAST_MAC = "00:00:00:00:00:00"
+
+
 def create_minimal_job(tx_rate, duration, size_min, size_max):
-    assert(duration != 0) # If 0 then nothing will really happen
+    assert duration != 0  # If 0 then nothing will really happen
     job = Job()
     job.tx_rate = tx_rate
     job.num_flows = 1
@@ -14,17 +18,20 @@ def create_minimal_job(tx_rate, duration, size_min, size_max):
     job.duration = duration
     return job
 
+
 def create_port_job(port, tx_rate, duration, size_min, size_max):
-    assert(duration != 0)
+    assert duration != 0
     job = create_minimal_job(tx_rate, duration, size_min, size_max)
     job.port = port
     return job
+
 
 def create_print_job():
     job = Job()
     setattr(job, "print", True)
     job.port = BCAST_MAC
     return job
+
 
 def create_request(jobs):
     if not isinstance(jobs, list):
@@ -33,19 +40,22 @@ def create_request(jobs):
     request.jobs.extend(jobs)
     return request
 
+
 def connect(pktgen_ip, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((pktgen_ip, port))
     return sock
 
+
 def send_request(socket, request):
     buf = request.SerializeToString()
-    length = struct.pack('>L', len(buf))
+    length = struct.pack(">L", len(buf))
     socket.sendall(length + buf)
+
 
 def recv_response(socket):
     length = socket.recv(4)
-    length = struct.unpack('>L', length)[0]
+    length = struct.unpack(">L", length)[0]
     buf = socket.recv(length)
     status = Status()
     status.ParseFromString(buf)

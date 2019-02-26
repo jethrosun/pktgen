@@ -1,14 +1,17 @@
-import sys
+#!/usr/bin/env python
+
+# import sys
+# import code
 import json
-import code
+
+# import math
+import time
 import Queue
-import struct
 import socket
+import struct
 import logging
 import argparse
 import threading
-import time
-import math
 
 import job_pb2
 import status_pb2
@@ -16,10 +19,12 @@ import status_pb2
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger("pktgen_scheduler")
 
+
 class Q(object):
     """
     Q is a multi-threaded job scheduler.
     """
+
     def __init__(self, ip, port, nodes_file, jobs_file):
         self.ip = ip
         self.port = port
@@ -40,7 +45,7 @@ class Q(object):
         Setup the socket, start all the jobs, and beginning listening
         for statuses.
         """
-        logger.info('Starting job scheduler.')
+        logger.info("Starting job scheduler.")
         self.setup_socket()
         self.start_jobs()
         self.thread = threading.Thread(target=self.listen)
@@ -50,7 +55,7 @@ class Q(object):
         """
         Start jobs on each node.
         """
-        logger.info('Starting node jobs.')
+        logger.info("Starting node jobs.")
         for node in set(self.nodes.values()):
             node.next_job()
 
@@ -61,18 +66,22 @@ class Q(object):
         if node_id in self.nodes:
             self.jobs.append(job)
             self.nodes[node_id].add_job(job)
-            self.nodes[node_id].next_job() # run job if idle
+            self.nodes[node_id].next_job()  # run job if idle
         else:
-            logger.error('Cannot add job to node %s as it does not exist.' % node_id)
+            logger.error(
+                "Cannot add job to node %s as it does not exist." % node_id
+            )
 
     def add_node(self, node):
         """
         """
-        ip_str = "%s:%d"%(node.ip, node.port)
+        ip_str = "%s:%d" % (node.ip, node.port)
         if node.name not in self.nodes and ip_str not in self.nodes:
-            self.nodes[node.name] = self.nodes[ip_str]  = node
+            self.nodes[node.name] = self.nodes[ip_str] = node
         else:
-            logger.error('Cannot add node %s as it already exists.' % node.addr())
+            logger.error(
+                "Cannot add node %s as it already exists." % node.addr()
+            )
 
     def listen(self, backlog=5):
         """
@@ -80,12 +89,16 @@ class Q(object):
         thread to handle it.
         """
         self.sock.listen(backlog)
-        logger.info('Currently listening on (%s, %s) for any statuses.' % (str(self.ip), str(self.port)))
+        logger.info(
+            "Currently listening on (%s, %s) for any statuses."
+            % (str(self.ip), str(self.port))
+        )
         while self.sock is not None:
             try:
                 client_sock, client_addr = self.sock.accept()
-                threading.Thread(target=self.handle_client, 
-                                 args=(client_sock, client_addr)).start()
+                threading.Thread(
+                    target=self.handle_client, args=(client_sock, client_addr)
+                ).start()
             except:
                 pass
 
@@ -96,18 +109,21 @@ class Q(object):
         it exists.
         """
         ip = str(addr[0])
-        logger.info('Received status from ip %s.' % ip)
+        logger.info("Received status from ip %s." % ip)
 
         try:
             status = self.read_status(sock)
-            ip_str = '%s:%d'%(ip, status.port)
+            ip_str = "%s:%d" % (ip, status.port)
             if ip_str not in self.nodes:
-                logger.error('Ip %s is not one of the nodes' % ip_str)
+                logger.error("Ip %s is not one of the nodes" % ip_str)
                 sock.close()
                 return
-       
+
             if status.type == status_pb2.Status.SUCCESS:
-                logger.info('Node %s successfully completed job.' % self.nodes[ip_str].addr())
+                logger.info(
+                    "Node %s successfully completed job."
+                    % self.nodes[ip_str].addr()
+                )
                 self.nodes[ip_str].finish_current_job()
                 self.nodes[ip_str].next_job()
             if status.type == status_pb2.Status.STATS:
@@ -117,36 +133,41 @@ class Q(object):
                     if ip_str not in self.results:
                         self.results[ip_str] = {}
                     self.results[ip_str][ps.port] = {
-                            'rtt_0':                  ps.rtt_0,
-                            'rtt_100':                ps.rtt_100,
-                            'rtt_25':                 ps.rtt_25,
-                            'rtt_50':                 ps.rtt_50,
-                            'rtt_75':                 ps.rtt_75,
-                            'rtt_90':                 ps.rtt_90,
-                            'rtt_95':                 ps.rtt_95,
-                            'rtt_99':                 ps.rtt_99,
-                            'rtt_mean':               ps.rtt_avg,
-                            'rtt_samples':            ps.n_rtt,
-                            'rtt_std':                ps.rtt_std,
-                            'rx_mbps_mean':           ps.avg_rxbps,
-                            'rx_mbps_std':            ps.std_rxbps,
-                            'rx_mbps_wire_mean':      ps.avg_rxwire,
-                            'rx_mbps_wire_std':       ps.std_rxwire,
-                            'rx_mpps_mean':           ps.avg_rxmpps,
-                            'rx_mpps_std':            ps.std_rxmpps,
-                            'tx_mbps_mean':           ps.avg_txbps,
-                            'tx_mbps_std':            ps.std_txbps,
-                            'tx_mbps_wire_mean':      ps.avg_txwire,
-                            'tx_mbps_wire_std':       ps.std_txwire,
-                            'tx_mpps_mean':           ps.avg_txmpps,
-                            'tx_mpps_std':            ps.std_txmpps
+                        "rtt_0": ps.rtt_0,
+                        "rtt_100": ps.rtt_100,
+                        "rtt_25": ps.rtt_25,
+                        "rtt_50": ps.rtt_50,
+                        "rtt_75": ps.rtt_75,
+                        "rtt_90": ps.rtt_90,
+                        "rtt_95": ps.rtt_95,
+                        "rtt_99": ps.rtt_99,
+                        "rtt_mean": ps.rtt_avg,
+                        "rtt_samples": ps.n_rtt,
+                        "rtt_std": ps.rtt_std,
+                        "rx_mbps_mean": ps.avg_rxbps,
+                        "rx_mbps_std": ps.std_rxbps,
+                        "rx_mbps_wire_mean": ps.avg_rxwire,
+                        "rx_mbps_wire_std": ps.std_rxwire,
+                        "rx_mpps_mean": ps.avg_rxmpps,
+                        "rx_mpps_std": ps.std_rxmpps,
+                        "tx_mbps_mean": ps.avg_txbps,
+                        "tx_mbps_std": ps.std_txbps,
+                        "tx_mbps_wire_mean": ps.avg_txwire,
+                        "tx_mbps_wire_std": ps.std_txwire,
+                        "tx_mpps_mean": ps.avg_txmpps,
+                        "tx_mpps_std": ps.std_txmpps,
                     }
                     self.results_event.set()
             if status.type == status_pb2.Status.FAIL:
-                logger.info('Node %s successfully completed job.' % self.nodes[ip_str].addr())
+                logger.info(
+                    "Node %s successfully completed job."
+                    % self.nodes[ip_str].addr()
+                )
                 self.results_event.set()
         except:
-            logger.info('Failed to read status from node %s' % self.nodes[ip_str].addr())
+            logger.info(
+                "Failed to read status from node %s" % self.nodes[ip_str].addr()
+            )
             pass
 
         sock.close()
@@ -158,7 +179,7 @@ class Q(object):
         and then converted from string -> Status using protobuf.
         """
         len_buf = self.read_n_bytes(sock, 4)
-        status_len = struct.unpack('>L', len_buf)[0]
+        status_len = struct.unpack(">L", len_buf)[0]
         status_buf = self.read_n_bytes(sock, status_len)
 
         status = status_pb2.Status()
@@ -170,7 +191,7 @@ class Q(object):
         """
         Simply read n bytes from the sock.
         """
-        data = ''
+        data = ""
         while n_bytes > 0:
             tmp_buf = sock.recv(n_bytes)
             if not tmp_buf:
@@ -195,10 +216,11 @@ class Q(object):
         logger.info("Loading nodes file %s." % nodes_file)
         nodes = {}
         node_data = self.load_json(nodes_file)
-        
-        for node in node_data['nodes']:
-            nodes[node['name']] = nodes[node['ip']]  \
-                                = Node(node['name'], node['ip'])
+
+        for node in node_data["nodes"]:
+            nodes[node["name"]] = nodes[node["ip"]] = Node(
+                node["name"], node["ip"]
+            )
 
         return nodes
 
@@ -210,10 +232,10 @@ class Q(object):
         jobs = []
         jobs_data = self.load_json(jobs_file)
 
-        for job in jobs_data['jobs']:
-            for node in job['nodes']:
+        for job in jobs_data["jobs"]:
+            for node in job["nodes"]:
                 if node in self.nodes:
-                    j = Job(job['priority'], job['data'])
+                    j = Job(job["priority"], job["data"])
                     self.nodes[node].add_job(j)
                     jobs.append(j)
                 else:
@@ -225,7 +247,7 @@ class Q(object):
         """
         Convert json_file to dictionary.
         """
-        with open(json_file, 'r') as json_data:
+        with open(json_file, "r") as json_data:
             return json.load(json_data)
 
     def stop(self):
@@ -236,6 +258,7 @@ class Q(object):
             self.sock.close()
             self.sock = None
             self.thread.join()
+
 
 class Node(object):
     """
@@ -248,7 +271,7 @@ class Node(object):
         self.port = port
         self.sock = None
         self.pending_jobs = Queue.PriorityQueue()
-        self.working_job = None # doesn't need to be queue (just consistency)
+        self.working_job = None  # doesn't need to be queue (just consistency)
         self.completed_jobs = []
 
     def add_job(self, job):
@@ -264,9 +287,9 @@ class Node(object):
         # currently a working job, not ready
         if self.working_job:
             return
-        
-        try:         
-            # pop off next job   
+
+        try:
+            # pop off next job
             priority, job = self.pending_jobs.get(False)
             # setup socket, send job, and close
             self.setup_socket()
@@ -287,9 +310,9 @@ class Node(object):
         """
         Send the serialized job to node.
         """
-        sdata = job.pack() # pack the data
-        length = struct.pack('>L', len(sdata)) # pack the length in 4 bytes
-        self.sock.sendall(length + sdata) # send it off length + data
+        sdata = job.pack()  # pack the data
+        length = struct.pack(">L", len(sdata))  # pack the length in 4 bytes
+        self.sock.sendall(length + sdata)  # send it off length + data
 
     def finish_current_job(self):
         """
@@ -297,7 +320,7 @@ class Node(object):
         """
         if self.working_job:
             self.completed_jobs.append(self.working_job)
-            self.working_job = None           
+            self.working_job = None
 
     def setup_socket(self):
         """
@@ -305,19 +328,21 @@ class Node(object):
         """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.connect((self.ip, self.port)) 
+        self.sock.connect((self.ip, self.port))
         logger.debug("Successfully setup socket to node %s." % self.addr())
 
     def addr(self):
         """
         Just return node in (ip, port) format
         """
-        return '(%s, %s)' % (str(self.ip), str(self.port))
+        return "(%s, %s)" % (str(self.ip), str(self.port))
+
 
 class Job(object):
     """
     Represents a job to be passed to nodes.
     """
+
     def __init__(self, priority, data):
         self.priority = priority
         self.job = self.load_job(data)
@@ -338,6 +363,7 @@ class Job(object):
         """
         return self.job.SerializeToString()
 
+
 def demo(servers, q):
     """
     server = [(server_ip,server_port),...]
@@ -348,25 +374,45 @@ def demo(servers, q):
             q.add_node(Node(str(i), s[0], s[1]))
 
         for i in range(n):
-            q.add_job(str(i), Job(1, {
-                "tx_rate": 100,
-                "duration": 5000,
-                "warmup": 1000,
-                "num_flows": 1,
-                "size_min": 768, "size_max": 768,
-                "life_min": 5000, "life_max": 5000,
-                "port_min": 80, "port_max": 80,
-                "online": True}))
+            q.add_job(
+                str(i),
+                Job(
+                    1,
+                    {
+                        "tx_rate": 100,
+                        "duration": 5000,
+                        "warmup": 1000,
+                        "num_flows": 1,
+                        "size_min": 768,
+                        "size_max": 768,
+                        "life_min": 5000,
+                        "life_max": 5000,
+                        "port_min": 80,
+                        "port_max": 80,
+                        "online": True,
+                    },
+                ),
+            )
             time.sleep(5)
-            q.add_job(str(i), Job(2, {
-                "tx_rate": 100,
-                "duration": 5000,
-                "warmup": 1000,
-                "num_flows": 2,
-                "size_min": 768, "size_max": 768,
-                "life_min": 5000, "life_max": 5000,
-                "port_min": 443, "port_max": 443,
-                "online": True}))
+            q.add_job(
+                str(i),
+                Job(
+                    2,
+                    {
+                        "tx_rate": 100,
+                        "duration": 5000,
+                        "warmup": 1000,
+                        "num_flows": 2,
+                        "size_min": 768,
+                        "size_max": 768,
+                        "life_min": 5000,
+                        "life_max": 5000,
+                        "port_min": 443,
+                        "port_max": 443,
+                        "online": True,
+                    },
+                ),
+            )
     except:
         for i in range(n):
             q.add_job(str(i), Job(0, {"stop": True}))
