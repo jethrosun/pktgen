@@ -3,27 +3,27 @@
 
 #include "pktgen_util.h"
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <inttypes.h>
 #include <ctype.h>
 #include <getopt.h>
-#include <stdio.h>
+#include <inttypes.h>
 #include <math.h>
-#include <signal.h>
 #include <semaphore.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 /* start demo stuff */
+#include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
-#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
 #include "protobufs/job.pb-c.h"
@@ -36,25 +36,25 @@
 #define BACKLOG 25
 /* end demo stuff */
 
+#include <rte_common.h>
 #include <rte_config.h>
+#include <rte_cycles.h>
 #include <rte_eal.h>
-#include <rte_random.h>
 #include <rte_errno.h>
 #include <rte_ethdev.h>
-#include <rte_cycles.h>
-#include <rte_lcore.h>
-#include <rte_launch.h>
-#include <rte_mbuf.h>
-#include <rte_common.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
-#include <rte_udp.h>
-#include <rte_tcp.h>
-#include <rte_memcpy.h>
+#include <rte_launch.h>
+#include <rte_lcore.h>
 #include <rte_malloc.h>
+#include <rte_mbuf.h>
+#include <rte_memcpy.h>
+#include <rte_random.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
 
 #define BURST_SIZE 32
-#define MAX_PKT_SIZE 1518 //2048
+#define MAX_PKT_SIZE 1518  // 2048
 
 #define MAX_CMD 48
 #define GEN_KEY 0x1234
@@ -177,8 +177,7 @@ struct pkt {
 };
 
 static const struct rte_eth_conf port_conf_default = {
-    .rxmode = {.max_rx_pkt_len = ETHER_MAX_LEN}
-};
+    .rxmode = {.max_rx_pkt_len = ETHER_MAX_LEN}};
 
 static struct ether_addr zero_mac UNUSED = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};

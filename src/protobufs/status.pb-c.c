@@ -317,7 +317,9 @@ static const ProtobufCEnumValue status__type__enum_values_by_number[3] = {
 };
 static const ProtobufCIntRange status__type__value_ranges[] = {{0, 0}, {0, 3}};
 static const ProtobufCEnumValueIndex status__type__enum_values_by_name[3] = {
-    {"FAIL", 0}, {"STATS", 2}, {"SUCCESS", 1},
+    {"FAIL", 0},
+    {"STATS", 2},
+    {"SUCCESS", 1},
 };
 const ProtobufCEnumDescriptor status__type__descriptor = {
     PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,

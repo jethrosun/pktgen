@@ -1,9 +1,9 @@
 #ifndef _SIMD_H_
 #define _SIMD_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <stdint.h>
 
 #include <x86intrin.h>
 #include "log.h"

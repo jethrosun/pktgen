@@ -3,13 +3,13 @@
 
 #include "simd.h"
 
-#include <stdio.h>
 #include <rte_config.h>
 #include <rte_cycles.h>
 #include <rte_ether.h>
 #include <rte_mbuf.h>
-#include <sys/types.h>
+#include <stdio.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #define DAEMON 0
 #define UNUSED __attribute__((__unused__))
@@ -74,8 +74,9 @@ static inline int
 ether_addr_from_str(const char *str, struct ether_addr *addr)
 {
     int mac[6], ret, i;
-    ret = str == NULL ? 0 : sscanf(str, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1],
-                                   &mac[2], &mac[3], &mac[4], &mac[5]);
+    ret = str == NULL ? 0
+                      : sscanf(str, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1],
+                               &mac[2], &mac[3], &mac[4], &mac[5]);
 
     if (ret != 6 || addr == NULL) {
         return -1;

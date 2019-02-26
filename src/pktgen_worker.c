@@ -73,8 +73,7 @@ init_mempool(struct pktgen_config *config)
     if (rte_mempool_sc_get_bulk(config->port.tx_pool, (void **)bufs, size) != 0)
         rte_panic("couldn't allocate all mbufs from tx pool");
 
-    for (i = 0; i < size; i++)
-        init_mbuf(bufs[i], config);
+    for (i = 0; i < size; i++) init_mbuf(bufs[i], config);
 
     rte_mempool_sp_put_bulk(config->port.tx_pool, (void **)bufs, size);
 }
@@ -129,9 +128,9 @@ update_stats(struct pktgen_config *config UNUSED, struct rate_stats *s,
 
 #ifndef NDEBUG
     logmsg(LOG_INFO,
-           "[port=%d] rx/tx stats: mpps=%.3f/%.3f mbps=%.1f/%1.f wire_mbps=%.1f/%.1f",
-           config->port.id,
-           s->avg_rxpps / 1000000, s->avg_txpps / 1000000,
+           "[port=%d] rx/tx stats: mpps=%.3f/%.3f mbps=%.1f/%1.f "
+           "wire_mbps=%.1f/%.1f",
+           config->port.id, s->avg_rxpps / 1000000, s->avg_txpps / 1000000,
            s->avg_rxbps / 1000000, s->avg_txbps / 1000000,
            s->avg_rxwire / 1000000, s->avg_txwire / 1000000);
 #endif
@@ -238,14 +237,15 @@ generate_packet(struct rte_mbuf *buf, struct rate_stats *r_stats,
     if (config->flags & FLAG_RANDOMIZE_PAYLOAD) {
         __m128i block;
         // random offset
-        //ptr += rand_fast(&config->seed) % 1280;
+        // ptr += rand_fast(&config->seed) % 1280;
         if (((intptr_t)ptr & (sizeof(block) - 1)) != 0)
             ptr = (uint8_t *)(1 + ((intptr_t)ptr | (sizeof(block) - 1)));
 
         for (; ptr < end - pkt_size % sizeof(block); ptr += 2 * sizeof(block)) {
             //*(uint32_t *)ptr = rand_fast(&config->seed);
-            block = _mm_setr_epi32(rand_fast(&config->seed), rand_fast(&config->seed),
-                    rand_fast(&config->seed), rand_fast(&config->seed));
+            block = _mm_setr_epi32(
+                rand_fast(&config->seed), rand_fast(&config->seed),
+                rand_fast(&config->seed), rand_fast(&config->seed));
             _mm_store_si128((__m128i *)ptr, block);
         }
         // FIXME: last 1-3 bytes may be uninitialized
@@ -273,9 +273,9 @@ do_rx(struct pktgen_config *config, struct rate_stats *r_stats, double now)
                 (idx = rand_fast(&config->seed) % r_stats->nb_samples) <
                     NUM_SAMPLES) {
                 uint8_t *p = rte_pktmbuf_mtod_offset(
-                    bufs[i], uint8_t *, sizeof(struct ether_hdr) +
-                                            sizeof(struct ipv4_hdr) +
-                                            sizeof(struct udp_hdr));
+                    bufs[i], uint8_t *,
+                    sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) +
+                        sizeof(struct udp_hdr));
                 double *ts = (double *)(p + 1);
                 if (*p == config->run_id && *ts > 0) {
                     // microseconds
@@ -323,9 +323,8 @@ do_tx(struct pktgen_config *config, struct rate_stats *r_stats,
     }
     nb_tx = rte_eth_tx_burst(config->port.id, 0, bufs, burst);
 
-    rte_mempool_sp_put_bulk(config->port.tx_pool,
-            (void **)&bufs[nb_tx],
-            burst - nb_tx);
+    rte_mempool_sp_put_bulk(config->port.tx_pool, (void **)&bufs[nb_tx],
+                            burst - nb_tx);
 
     r_stats->tx_bytes += pktlen_sum[nb_tx];
     r_stats->tx_pkts += nb_tx;
@@ -338,7 +337,8 @@ reset_stats(struct pktgen_config *config, struct rate_stats *r_stats)
 {
     // drain rx
     rte_delay_us(10000);
-    while (do_rx(config, r_stats, get_time_msec()) > 0);
+    while (do_rx(config, r_stats, get_time_msec()) > 0)
+        ;
     memset(r_stats, 0, offsetof(struct rate_stats, flow_ctrs));
     memset(r_stats->flow_times, 0, sizeof(double) * (config->num_flows + 1));
     memset(r_stats->flow_ctrs, 0, sizeof(uint16_t) * (config->num_flows + 1));
@@ -358,15 +358,16 @@ worker_loop(void *arg)
 
     config->run_id = 1;
     r_stats->samples = rte_zmalloc("samples", sizeof(double) * NUM_SAMPLES, 0);
-    r_stats->flow_ctrs = rte_zmalloc("flow_ctrs", sizeof(uint16_t) * MAX_NUM_FLOWS, 0);
-    r_stats->flow_times = rte_zmalloc("flow_times", sizeof(double) * MAX_NUM_FLOWS, 0);
+    r_stats->flow_ctrs =
+        rte_zmalloc("flow_ctrs", sizeof(uint16_t) * MAX_NUM_FLOWS, 0);
+    r_stats->flow_times =
+        rte_zmalloc("flow_times", sizeof(double) * MAX_NUM_FLOWS, 0);
     if (r_stats->flow_ctrs == NULL || r_stats->flow_times == NULL) {
         rte_panic("couldn't allocate flow counters");
     }
 
     for (;;) {
-        while (config->flags & FLAG_WAIT)
-            rte_delay_us(10);
+        while (config->flags & FLAG_WAIT) rte_delay_us(10);
 
         assert(config->num_flows < MAX_NUM_FLOWS);
 
@@ -395,23 +396,23 @@ worker_loop(void *arg)
             if (unlikely((config->flags & FLAG_WAIT) ||
                          elapsed_total > config->duration)) {
                 break;
-            } else if (unlikely(warmup &&
-                                elapsed_total > config->warmup)) {
+            } else if (unlikely(warmup && elapsed_total > config->warmup)) {
                 reset_stats(config, r_stats);
                 start_time = get_time_msec();
                 warmup = 0;
             } else if (unlikely(elapsed_current > 250)) {
                 update_stats(config, r_stats, elapsed_current / 1000);
-                if (unlikely(warmup &&
-                            dynamic_tx_rate &&
-                            r_stats->avg_txpps > 1.0005 * r_stats->avg_rxpps)) {
+                if (unlikely(warmup && dynamic_tx_rate &&
+                             r_stats->avg_txpps >
+                                 1.0005 * r_stats->avg_rxpps)) {
                     double factor = r_stats->avg_rxpps / r_stats->avg_txpps;
                     config->tx_rate = factor * r_stats->avg_txbps / 1000000;
                     reset_stats(config, r_stats);
                 }
                 start_time = get_time_msec();
             } else if (likely(now - prev_rxtx > 0.0021)) {
-                while (do_rx(config, r_stats, now) == config->port.burst);
+                while (do_rx(config, r_stats, now) == config->port.burst)
+                    ;
                 do_tx(config, r_stats, elapsed_current, now);
                 prev_rxtx = now;
             }

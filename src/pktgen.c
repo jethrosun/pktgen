@@ -1,7 +1,7 @@
 #include "pktgen.h"
-#include "pktgen_worker.c"
-#include "log.h"
 #include <assert.h>
+#include "log.h"
+#include "pktgen_worker.c"
 
 static inline int
 port_init(struct port_t *port)
@@ -27,7 +27,7 @@ port_init(struct port_t *port)
     rte_eth_dev_info_get(port->id, &info);
     info.default_rxconf.rx_drop_en = 1;
     // FIXME: enabling offload kills xput
-    //info.default_txconf.txq_flags = (uint32_t)ETH_TXQ_FLAGS_NOMULTSEGS;
+    // info.default_txconf.txq_flags = (uint32_t)ETH_TXQ_FLAGS_NOMULTSEGS;
 
     if (strncmp(info.driver_name, "rte_bond_pmd", 12) == 0) {
         port->tx_pool_size *= 4;
@@ -42,8 +42,9 @@ port_init(struct port_t *port)
     snprintf(poolname, sizeof(poolname), "MGEN_%s_tx_0", port->name);
     port->tx_pool = rte_mempool_lookup(poolname);
     if (!port->tx_pool)
-        port->tx_pool = rte_pktmbuf_pool_create(poolname, port->tx_pool_size, 0, 0,
-                RTE_MBUF_DEFAULT_BUF_SIZE, port->socket_id);
+        port->tx_pool =
+            rte_pktmbuf_pool_create(poolname, port->tx_pool_size, 0, 0,
+                                    RTE_MBUF_DEFAULT_BUF_SIZE, port->socket_id);
 
     if (!port->tx_pool) {
         rte_exit(EXIT_FAILURE, "Cannot create TX mbuf pool: %s\n",
@@ -54,7 +55,6 @@ port_init(struct port_t *port)
     struct rte_mbuf *mbuf = rte_pktmbuf_alloc(port->tx_pool);
     tx_mbuf_template = *mbuf;
     rte_pktmbuf_free(mbuf);
-
 
     if (rte_eal_process_type() != RTE_PROC_PRIMARY) {
         return 0;
@@ -94,9 +94,9 @@ port_init(struct port_t *port)
     }
 
     for (q = 0; q < rx_rings; q++) {
-        retval =
-            rte_eth_rx_queue_setup(port->id, q, port->nb_rx_desc,
-                                   port->socket_id, &info.default_rxconf, rx_pool);
+        retval = rte_eth_rx_queue_setup(port->id, q, port->nb_rx_desc,
+                                        port->socket_id, &info.default_rxconf,
+                                        rx_pool);
         if (retval != 0) {
             return retval;
         }
@@ -115,10 +115,10 @@ port_init(struct port_t *port)
         return retval;
     }
 
-   logmsg(LOG_INFO, "Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
-                     " %02" PRIx8 " %02" PRIx8 " %02" PRIx8,
-           port->id,
-           port->macaddr.addr_bytes[0], port->macaddr.addr_bytes[1],
+    logmsg(LOG_INFO,
+           "Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8
+           " %02" PRIx8 " %02" PRIx8,
+           port->id, port->macaddr.addr_bytes[0], port->macaddr.addr_bytes[1],
            port->macaddr.addr_bytes[2], port->macaddr.addr_bytes[3],
            port->macaddr.addr_bytes[4], port->macaddr.addr_bytes[5]);
 
@@ -144,8 +144,7 @@ create_and_bind_socket(char *port)
     }
 
     for (p = res; p != NULL; p = p->ai_next) {
-        if ((fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) <
-                0) {
+        if ((fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0) {
             continue;
         }
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
@@ -213,11 +212,12 @@ send_status(int fd, int status, struct pktgen_config **config, uint16_t n)
     Status s = STATUS__INIT;
     s.has_type = 1;
     s.type = status;
-    //s.port = ctrl;
+    // s.port = ctrl;
 
     if (config != NULL) {
         i = 0;
-        RTE_LCORE_FOREACH_SLAVE(j) {
+        RTE_LCORE_FOREACH_SLAVE(j)
+        {
             li = rte_lcore_index(j);
             if (!config[li]->active) {
                 continue;
@@ -226,17 +226,21 @@ send_status(int fd, int status, struct pktgen_config **config, uint16_t n)
             port_stats__init(p_stats[i]);
             p_stats[i]->n = config[li]->stats.n;
             p_stats[i]->avg_rxmpps = config[li]->stats.avg_rxpps / 1000000;
-            p_stats[i]->std_rxmpps = sqrt(config[li]->stats.var_rxpps) / 1000000;
+            p_stats[i]->std_rxmpps =
+                sqrt(config[li]->stats.var_rxpps) / 1000000;
             p_stats[i]->avg_rxbps = config[li]->stats.avg_rxbps / 1000000;
             p_stats[i]->std_rxbps = sqrt(config[li]->stats.var_rxbps) / 1000000;
             p_stats[i]->avg_txmpps = config[li]->stats.avg_txpps / 1000000;
-            p_stats[i]->std_txmpps = sqrt(config[li]->stats.var_txpps) / 1000000;
+            p_stats[i]->std_txmpps =
+                sqrt(config[li]->stats.var_txpps) / 1000000;
             p_stats[i]->avg_txbps = config[li]->stats.avg_txbps / 1000000;
             p_stats[i]->std_txbps = sqrt(config[li]->stats.var_txbps) / 1000000;
             p_stats[i]->avg_txwire = config[li]->stats.avg_txwire / 1000000;
-            p_stats[i]->std_txwire = sqrt(config[li]->stats.var_txwire) / 1000000;
+            p_stats[i]->std_txwire =
+                sqrt(config[li]->stats.var_txwire) / 1000000;
             p_stats[i]->avg_rxwire = config[li]->stats.avg_rxwire / 1000000;
-            p_stats[i]->std_rxwire = sqrt(config[li]->stats.var_rxwire) / 1000000;
+            p_stats[i]->std_rxwire =
+                sqrt(config[li]->stats.var_rxwire) / 1000000;
             p_stats[i]->n_rtt = config[li]->stats.rtt_n;
             p_stats[i]->rtt_avg = config[li]->stats.rtt_avg;
             p_stats[i]->rtt_std = config[li]->stats.rtt_std;
@@ -254,24 +258,27 @@ send_status(int fd, int status, struct pktgen_config **config, uint16_t n)
             p_stats[i]->rx_pkts = config[li]->stats.rx_pkts;
             p_stats[i]->port = (char *)malloc(sizeof(char) * 18);
             strncpy(p_stats[i]->port, config[li]->port_str, 18);
-            //ether_format_addr(p_stats[i]->port, 18, &config[li]->port.macaddr);
+            // ether_format_addr(p_stats[i]->port, 18,
+            // &config[li]->port.macaddr);
 
-            logmsg(LOG_INFO,
-                    "[port/lcore/socket=%2d;%s,%2d,%1d] rx/tx: mpps=%06.3f/%06.3f "
-                    "wire_mbps=%06.1f/%06.1f",
-                    config[li]->port.id, p_stats[i]->port, config[li]->lcore_id,
-                    config[li]->socket_id, config[li]->stats.avg_rxpps / 1000000,
-                    config[li]->stats.avg_txpps / 1000000,
-                    config[li]->stats.avg_rxwire / 1000000,
-                    config[li]->stats.avg_txwire / 1000000);
+            logmsg(
+                LOG_INFO,
+                "[port/lcore/socket=%2d;%s,%2d,%1d] rx/tx: mpps=%06.3f/%06.3f "
+                "wire_mbps=%06.1f/%06.1f",
+                config[li]->port.id, p_stats[i]->port, config[li]->lcore_id,
+                config[li]->socket_id, config[li]->stats.avg_rxpps / 1000000,
+                config[li]->stats.avg_txpps / 1000000,
+                config[li]->stats.avg_rxwire / 1000000,
+                config[li]->stats.avg_txwire / 1000000);
             config[li]->active = 0;
-            memset(&config[li]->stats, 0, offsetof(struct rate_stats, flow_ctrs));
+            memset(&config[li]->stats, 0,
+                   offsetof(struct rate_stats, flow_ctrs));
 
             if (++i == n)
                 break;
         }
 
-        n = i; // in case n is larger than the number of active cores
+        n = i;  // in case n is larger than the number of active cores
         s.n_stats = n;
         s.stats = p_stats;
     }
@@ -339,7 +346,7 @@ handle_request(int fd, struct pktgen_config **cmd)
         ether_addr_from_str(j->src_mac, &cmd[i]->src_mac);
         ether_addr_from_str(j->dst_mac, &cmd[i]->dst_mac);
         strncpy(cmd[i]->port_str, j->port, 256);
-        //ether_addr_from_str(j->port, &cmd[i]->port_mac);
+        // ether_addr_from_str(j->port, &cmd[i]->port_mac);
 
         if (j->randomize)
             cmd[i]->flags |= FLAG_RANDOMIZE_PAYLOAD;
@@ -389,9 +396,8 @@ handle_request(int fd, struct pktgen_config **cmd)
                cmd[i]->tx_rate, cmd[i]->warmup, cmd[i]->duration,
                cmd[i]->num_flows, cmd[i]->size_min, cmd[i]->size_max,
                cmd[i]->proto, cmd[i]->port_min, cmd[i]->port_max,
-               cmd[i]->life_min, cmd[i]->life_max,
-               j->src_mac, j->dst_mac, j->port,
-               (cmd[i]->flags & FLAG_LIMIT_FLOW_LIFE) != 0,
+               cmd[i]->life_min, cmd[i]->life_max, j->src_mac, j->dst_mac,
+               j->port, (cmd[i]->flags & FLAG_LIMIT_FLOW_LIFE) != 0,
                (cmd[i]->flags & FLAG_RANDOMIZE_PAYLOAD) != 0,
                (cmd[i]->flags & FLAG_MEASURE_LATENCY) != 0,
                (cmd[i]->flags & FLAG_GENERATE_ONLINE) != 0,
@@ -433,10 +439,9 @@ find_port_id(char *port_str, uint8_t *port_id)
 }
 
 static int
-handle_client(int fd,
-        struct port_t *ports,
-        struct pktgen_config **config,
-        struct pktgen_config **cmd) {
+handle_client(int fd, struct port_t *ports, struct pktgen_config **config,
+              struct pktgen_config **cmd)
+{
     uint8_t port_id, nb_ports = rte_eth_dev_count();
     int n_jobs, retval, i, j, k, li = 0, socket_id;
     if ((n_jobs = handle_request(fd, cmd)) == -1) {
@@ -451,7 +456,8 @@ handle_client(int fd,
             // only handle stats for now
             if (cmd[j]->flags & FLAG_PRINT) {
                 // FIXME: maybe send a copy of config
-                if (send_status(fd, STATUS__TYPE__STATS, config, nb_ports) == -1) {
+                if (send_status(fd, STATUS__TYPE__STATS, config, nb_ports) ==
+                    -1) {
                     logmsg(LOG_ERR, "Failed to send stats.");
                     return -1;
                 }
@@ -464,23 +470,27 @@ handle_client(int fd,
                 }
                 for (k = 0; k < nb_ports; k++) {
                     port_to_core[k] = -1;
-                    RTE_LCORE_FOREACH_SLAVE(i) {
+                    RTE_LCORE_FOREACH_SLAVE(i)
+                    {
                         li = rte_lcore_index(i);
                         socket_id = rte_lcore_to_socket_id(i);
-                        if (!config[li] -> active &&
+                        if (!config[li]->active &&
                             socket_id == ports[k].socket_id &&
                             !assigned_core[li]) {
                             assigned_core[li] = 1;
                             port_to_core[k] = li;
-                            logmsg(LOG_ERR, "Assigning port %d to core %d\n", k, li);
+                            logmsg(LOG_ERR, "Assigning port %d to core %d\n", k,
+                                   li);
                             break;
                         }
                     }
                     if (port_to_core[k] == -1) {
-                        logmsg(LOG_ERR, "Not enough cores to assign to all ports");
+                        logmsg(LOG_ERR,
+                               "Not enough cores to assign to all ports");
                         failed = 1;
                         // Try and send status.
-                        if (send_status(fd, STATUS__TYPE__FAIL, NULL, 0) == -1) {
+                        if (send_status(fd, STATUS__TYPE__FAIL, NULL, 0) ==
+                            -1) {
                             logmsg(LOG_ERR, "Failed to send status");
                             return -1;
                         }
@@ -511,10 +521,11 @@ handle_client(int fd,
                         ether_addr_copy(&cmd[j]->dst_mac, &config[li]->dst_mac);
                         strncpy(config[li]->port_str, cmd[j]->port_str, 256);
 
-                        unsigned old_flags =
-                            __sync_lock_test_and_set(&config[li]->flags, cmd[j]->flags);
+                        unsigned old_flags = __sync_lock_test_and_set(
+                            &config[li]->flags, cmd[j]->flags);
                         // Previously we were waiting, but aren't anymore.
-                        if (!(old_flags & FLAG_WAIT) && (cmd[j]->flags & FLAG_WAIT)) {
+                        if (!(old_flags & FLAG_WAIT) &&
+                            (cmd[j]->flags & FLAG_WAIT)) {
                             sem_wait(&config[li]->stop_semaphore);
                         }
                     }
@@ -529,8 +540,7 @@ handle_client(int fd,
         {
             li = rte_lcore_index(i);
             socket_id = rte_lcore_to_socket_id(i);
-            if (!config[li]->active &&
-                    socket_id == ports[port_id].socket_id)
+            if (!config[li]->active && socket_id == ports[port_id].socket_id)
                 break;
         }
 
@@ -569,7 +579,7 @@ handle_client(int fd,
         config[li]->life_max = cmd[j]->life_max;
         ether_addr_copy(&cmd[j]->src_mac, &config[li]->src_mac);
         ether_addr_copy(&cmd[j]->dst_mac, &config[li]->dst_mac);
-        //ether_addr_copy(&cmd[j]->port_mac, &config[li]->port_mac);
+        // ether_addr_copy(&cmd[j]->port_mac, &config[li]->port_mac);
         strncpy(config[li]->port_str, cmd[j]->port_str, 256);
 
         unsigned old_flags =
@@ -627,17 +637,16 @@ main(int argc, char *argv[])
         socket_id = rte_lcore_to_socket_id(i);
         assert(socket_id == 0 || socket_id == 1);
         li = rte_lcore_index(i);
-        config[li] = rte_zmalloc_socket("pktgen_config",
-                sizeof(struct pktgen_config),
-                0,
-                socket_id);
+        config[li] = rte_zmalloc_socket(
+            "pktgen_config", sizeof(struct pktgen_config), 0, socket_id);
         config[li]->active = 0;
         config[li]->flags = FLAG_WAIT;
         config[li]->lcore_id = i;
         config[li]->seed = GEN_DEFAULT_SEED;
         config[li]->socket_id = socket_id;
         if (!config[li])
-            rte_exit(EXIT_FAILURE, "failed to rte_zmalloc_socket(config[%d])", li);
+            rte_exit(EXIT_FAILURE, "failed to rte_zmalloc_socket(config[%d])",
+                     li);
 
         sem_init(&config[li]->stop_semaphore, 0, 0);
         if (rte_get_master_lcore() != i)
@@ -663,16 +672,14 @@ main(int argc, char *argv[])
         if (fd_client < 0)
             continue;
 
-        while (handle_client(fd_client, ports, config, cmd) == 0);
+        while (handle_client(fd_client, ports, config, cmd) == 0)
+            ;
 
         close(fd_client);
     }
 
     free(cmd);
-    RTE_LCORE_FOREACH_SLAVE(i)
-    {
-        rte_free(config[rte_lcore_index(i)]);
-    }
+    RTE_LCORE_FOREACH_SLAVE(i) { rte_free(config[rte_lcore_index(i)]); }
 
     return 0;
 }
