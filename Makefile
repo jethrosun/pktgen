@@ -11,12 +11,12 @@ endif
 DPDK_INC_DIR = ${RTE_SDK}/${RTE_TARGET}/include
 DPDK_LIB_DIR = ${RTE_SDK}/${RTE_TARGET}/lib
 
-LDFLAGS += -rdynamic -L${DPDK_LIB_DIR} -Wl,-rpath=${DPDK_LIB_DIR}
+LDFLAGS += -rdynamic -L ${DPDK_LIB_DIR} -Wl,-rpath=${DPDK_LIB_DIR}
 LIBS += -Wl,--whole-archive -ldpdk -Wl,--no-whole-archive -lm -lpthread \
 		-ldl -lprotobuf-c -lrt
 CFLAGS += -std=gnu99 -g3 -ggdb3 -Ofast -m64 -march=native \
 		  -Wall -Werror -Wno-unused-function -Wno-unused-but-set-variable \
-		  -I${DPDK_INC_DIR} -D_GNU_SOURCE #-mavx2
+		  -I ${DPDK_INC_DIR} -D_GNU_SOURCE #-mavx2
 
 SRCS = src/pktgen.c src/pktgen_worker.c src/protobufs/job.pb-c.c \
 	   src/protobufs/status.pb-c.c
@@ -46,6 +46,6 @@ dpdk: dpdk-2.2.0.tar.gz
 	cd dpdk-2.2.0 && \
 	sed -i -E "s/(CONFIG_RTE_BUILD_COMBINE_LIBS)=.*/\1=y/" \
 		config/common_linuxapp && \
-	make -j 8 install T=x86_64-native-linuxapp-gcc
+	make -j 8 install T=x86_64-native-linuxapp-gcc DESTDIR=install
 
 all: dpdk bin/pktgen
