@@ -68,14 +68,14 @@ init_mbuf(struct rte_mbuf *buf, struct pktgen_config *config)
 static inline void
 init_mempool(struct pktgen_config *config)
 {
-    unsigned i, size = rte_mempool_count(config->port.tx_pool);
+    unsigned i, size = rte_mempool_avail_count(config->port.tx_pool);
     struct rte_mbuf *bufs[size];
-    if (rte_mempool_sc_get_bulk(config->port.tx_pool, (void **)bufs, size) != 0)
+    if (rte_mempool_get_bulk(config->port.tx_pool, (void **)bufs, size) != 0)
         rte_panic("couldn't allocate all mbufs from tx pool");
 
     for (i = 0; i < size; i++) init_mbuf(bufs[i], config);
 
-    rte_mempool_sp_put_bulk(config->port.tx_pool, (void **)bufs, size);
+    rte_mempool_put_bulk(config->port.tx_pool, (void **)bufs, size);
 }
 
 static inline void
@@ -287,7 +287,7 @@ do_rx(struct pktgen_config *config, struct rate_stats *r_stats, double now)
     }
 
     r_stats->rx_pkts += nb_rx;
-    rte_mempool_sp_put_bulk(bufs[0]->pool, (void **)bufs, nb_rx);
+    rte_mempool_put_bulk(bufs[0]->pool, (void **)bufs, nb_rx);
 
     return nb_rx;
 }
@@ -308,7 +308,7 @@ do_tx(struct pktgen_config *config, struct rate_stats *r_stats,
     burst = RTE_MIN(burst, config->port.burst);
 
     if (unlikely(burst <= 0 ||
-                 rte_mempool_sc_get_bulk(config->port.tx_pool, (void **)bufs,
+                 rte_mempool_get_bulk(config->port.tx_pool, (void **)bufs,
                                          burst) != 0)) {
         return 0;
     }
@@ -323,7 +323,7 @@ do_tx(struct pktgen_config *config, struct rate_stats *r_stats,
     }
     nb_tx = rte_eth_tx_burst(config->port.id, 0, bufs, burst);
 
-    rte_mempool_sp_put_bulk(config->port.tx_pool, (void **)&bufs[nb_tx],
+    rte_mempool_put_bulk(config->port.tx_pool, (void **)&bufs[nb_tx],
                             burst - nb_tx);
 
     r_stats->tx_bytes += pktlen_sum[nb_tx];

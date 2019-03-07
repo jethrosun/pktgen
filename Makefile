@@ -1,7 +1,7 @@
 CC=gcc
 
 ifndef RTE_SDK
-	RTE_SDK = ./dpdk-2.2.0
+	RTE_SDK = ./dpdk-17.08
 endif
 
 ifndef RTE_TARGET
@@ -31,8 +31,8 @@ bin/pktgen: ${SRCS}
 
 clean:
 	rm -rf bin
-	rm -f dpdk-2.2.0.tar.gz
-	rm -rf dpdk-2.2.0
+	rm -f dpdk-17.08.tar.gz
+	rm -rf dpdk-17.08
 
 format: src/pktgen.h src/pktgen.c src/pktgen_worker.c src/pktgen_util.h \
 	src/protobufs/job.pb-c.c src/protobufs/status.pb-c.c src/simd.h
