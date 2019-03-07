@@ -38,14 +38,24 @@ format: src/pktgen.h src/pktgen.c src/pktgen_worker.c src/pktgen_util.h \
 	src/protobufs/job.pb-c.c src/protobufs/status.pb-c.c src/simd.h
 	clang-format -i $^
 
+dpdk-17.08.tar.gz:
+	wget http://git.dpdk.org/dpdk/snapshot/dpdk-17.08.tar.gz
+
+dpdk: dpdk-17.08.tar.gz
+	ls dpdk-17.08.tar.gz && tar xzf dpdk-17.08.tar.gz
+	cd dpdk-17.08 && \
+		sed -i -E "s/(CONFIG_RTE_BUILD_COMBINE_LIBS)=.*/\1=y/" \
+		config/common_linuxapp && \
+		make -j 8 install T=x86_64-native-linuxapp-gcc DESTDIR=install
+
 dpdk-2.2.0.tar.gz:
 	wget http://dpdk.org/browse/dpdk/snapshot/dpdk-2.2.0.tar.gz
 
-dpdk: dpdk-2.2.0.tar.gz
+dpdk-old: dpdk-2.2.0.tar.gz
 	ls dpdk-2.2.0.tar.gz && tar xzf dpdk-2.2.0.tar.gz
 	cd dpdk-2.2.0 && \
-	sed -i -E "s/(CONFIG_RTE_BUILD_COMBINE_LIBS)=.*/\1=y/" \
+		sed -i -E "s/(CONFIG_RTE_BUILD_COMBINE_LIBS)=.*/\1=y/" \
 		config/common_linuxapp && \
-	make -j 8 install T=x86_64-native-linuxapp-gcc DESTDIR=install
+		make -j 8 install T=x86_64-native-linuxapp-gcc DESTDIR=install
 
 all: dpdk bin/pktgen
