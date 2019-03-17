@@ -6,13 +6,13 @@ pktgen_scheduler.py
 pktgen_scheduler talks with pktgen_servers, schedules
 jobs and listens for statuses.
 """
-
 import sys
-import argparse
-import time
 import math
+import time
+import argparse
 
 from control import *
+
 
 def demo(servers, q):
     """
@@ -107,12 +107,14 @@ def decrease_smoothly(q, server, start_rate, stop_rate, steps, duration, margin,
         "online": True\
         }))
 
+
 def kill_traffic(q, server):
     q.add_job(server, Job(0, {"stop": True}))
 
+
 def run_demo_job(q, server, rate, duration = None):
     if not duration:
-        duration = 3600 * 1000 # If nothing happens in an hour then we should just 
+        duration = 3600 * 1000 # If nothing happens in an hour then we should just
                                # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
@@ -125,9 +127,11 @@ def run_demo_job(q, server, rate, duration = None):
             "life_max": 10,\
             "online": True
             }))
+
+
 def run_demo_job_port(q, server, pmin, pmax, rate, duration = None):
     if not duration:
-        duration = 24 * 3600 * 1000 # If nothing happens in an hour then we should just 
+        duration = 24 * 3600 * 1000 # If nothing happens in an hour then we should just
                                # give up.
     q.add_job(server, Job(1, {\
             "tx_rate": rate, \
@@ -142,6 +146,8 @@ def run_demo_job_port(q, server, pmin, pmax, rate, duration = None):
             "life_max": 5,\
             "online": True
             }))
+
+
 def run_stress(q):
     server = "s"
     q.add_node(Node(server, "127.0.0.1", 7001))
@@ -163,6 +169,7 @@ def run_stress(q):
         decrease_smoothly(q, server, 800.0, 20.0, 5, 15, 2, 79)
         time.sleep(60)
         time.sleep(150)
+
 
 def run_demo(q, generation_function, kill, setup):
     baseline = 250
@@ -204,6 +211,7 @@ def run_demo(q, generation_function, kill, setup):
         # kill()
         raw_input()
 
+
 def run_demo_auto(q, generation_function, kill, setup):
     baseline = 250
     spike = 7500
@@ -243,6 +251,7 @@ def run_demo_auto(q, generation_function, kill, setup):
         print "Thank you. Killing off traffic, hit enter to get baseline"
         # kill()
         time.sleep(15)
+
 
 def demo_console(q):
     tenant0_pgen = "t0p"
