@@ -1,0 +1,8 @@
+bin/
+build/
+.pktgen_history
+dpdk-2.2.0.tar.gz
+dpdk-2.2.0/
+dpdk-17.08.tar.gz
+dpdk-17.08/
+*/*.pyc
